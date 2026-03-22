@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT Quiz</title>
+
+<style>
+body {
+  font-family: Arial;
+  padding: 16px;
+  max-width: 500px;
+  margin: auto;
+  background: #f9f9f9;
+}
+
+/* Progress */
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.progress-bar {
+  flex: 1;
+  height: 10px;
+  background: #eee;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.progress {
+  height: 100%;
+  background: #4caf50;
+  width: 0%;
+  transition: 0.3s;
+}
+
+/* Card */
+.card {
+  background: #fff;
+  border-radius: 15px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Question */
+#question {
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Answers */
+.answers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Button */
+.btn {
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  font-size: 18px;
+  background: #fff;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn:active {
+  transform: scale(0.98);
+  background: #eee;
+}
+
+.correct {
+  background: #c8f7c5;
+}
+
+.wrong {
+  background: #f7c5c5;
+}
+
+/* Stats */
+.stats {
+  margin-top: 20px;
+  font-size: 16px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Progress -->
+<div class="progress-container">
+  <div class="progress-bar">
+    <div class="progress" id="progressBar"></div>
+  </div>
+  <span id="progressText">0 / 0</span>
+</div>
+
+<!-- Card -->
+<div class="card">
+  <div id="question"></div>
+  <div class="answers" id="answers"></div>
+
+  <div class="stats">
+    <p>✅ Đúng: <span id="correct">0</span></p>
+    <p>❌ Sai: <span id="wrong">0</span></p>
+    <p>🏆 Điểm: <span id="score">0</span></p>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const data = [
+{ word: "誰であろうと", reading: "だれであろうと", meaning: "Bất kể bạn là ai" },
+{ word: "フィードバック", reading: "", meaning: "Sự phản hồi" },
+{ word: "察知する", reading: "さっちする", meaning: "Cảm thấy, cảm nhận bằng dự đoán và bản năng của mình" },
+{ word: "落胆", reading: "らくたん", meaning: "Nản lòng, nhụt chí" },
+{ word: "パフォーマンス", reading: "", meaning: "Sự biểu diễn; sự trình bày" },
+{ word: "一日おいて", reading: "いちにちおいて", meaning: "Một ngày trôi qua" },
+{ word: "氷解する", reading: "ひょうかいする", meaning: "Giải quyết" },
+{ word: "類", reading: "るい", meaning: "Loại, chủng loại" },
+{ word: "挫折する", reading: "ざせつする", meaning: "Thất bại giữa chừng, bỏ ngang, giữa đường đứt gánh…" },
+{ word: "いわゆる", reading: "", meaning: "Cái gọi là" },
+{ word: "～ではなかろうか", reading: "", meaning: "Mẫu câu dùng để đưa ra ý kiến của bản thân một cách lịch sự, nhẹ nhàng" },
+{ word: "伝達する", reading: "でんたつする", meaning: "Truyền đạt" },
+{ word: "ゆえに", reading: "", meaning: "Do đó, kết quả là" },
+{ word: "加工する", reading: "かこうする", meaning: "Gia công / chế biến / xử lý (nguyên liệu, dữ liệu, ảnh…)" },
+{ word: "ショット", reading: "", meaning: "Cú đánh / cú bắn; cú chụp / khung hình (ảnh/phim); ly “shot” (đồ uống)" },
+{ word: "作用する", reading: "さようする", meaning: "Ảnh hưởng" },
+{ word: "そもそも", reading: "", meaning: "Đầu tiên, ngay từ ban đầu" },
+{ word: "時には", reading: "ときには", meaning: "Đôi khi / thỉnh thoảng" },
+{ word: "つぶやき", reading: "", meaning: "Lẩm bẩm; (SNS) bài đăng ngắn / tweet" },
+{ word: "背景", reading: "はいけい", meaning: "Phông nền; bối cảnh; hậu cảnh; hoàn cảnh / nguồn cơn" },
+{ word: "物差し", reading: "ものさし", meaning: "Tiêu chuẩn đánh giá" },
+{ word: "自覚する", reading: "じかくする", meaning: "Tự giác" },
+{ word: "図る", reading: "はかる", meaning: "Tính / đo toan; đặt kế hoạch; tiến hành; xúc tiến; nhắm đạt" },
+{ word: "理性を働かせる", reading: "りせいをはたらかせる", meaning: "Suy nghĩ mà không bị ảnh hưởng bởi cảm xúc" },
+{ word: "養育者", reading: "よういくしゃ", meaning: "Người nuôi dưỡng, người chăm sóc" },
+{ word: "反抗", reading: "はんこう", meaning: "Chống đối, nổi loạn" },
+{ word: "顕著になる", reading: "けんちょになる", meaning: "Trở nên đáng chú ý" },
+{ word: "自我が芽生える", reading: "じががめばえる", meaning: "Cái tôi bắt đầu hình thành" },
+{ word: "表明する", reading: "ひょうめいする", meaning: "Thể hiện rõ ràng" },
+{ word: "象徴的", reading: "しょうちょうてき", meaning: "Tượng trưng" },
+{ word: "乳児", reading: "にゅうじ", meaning: "Trẻ con trong khoảng 1 tuổi" },
+{ word: "未熟な", reading: "みじゅく", meaning: "Chưa có kinh nghiệm, chưa chín chắn" },
+{ word: "鉄則", reading: "てっそく", meaning: "Kỷ luật thép" },
+{ word: "～を重用する", reading: "～をじゅうようする", meaning: "Đóng vai trò quan trọng; trọng dụng (con người/nhân sự)" },
+{ word: "別の部署に異動させる", reading: "べつのぶしょにいどうさせる", meaning: "Cho chuyển công tác sang bộ phận khác" },
+{ word: "伸びしろ", reading: "のびしろ", meaning: "Dư địa/tiềm năng để phát triển" },
+{ word: "底上げ", reading: "そこあげ", meaning: "Sự nâng cao toàn diện trình độ của một tập thể" },
+{ word: "本懐", reading: "ほんかい", meaning: "Nguyện vọng ôm ấp trong lòng từ rất lâu" },
+{ word: "リアル", reading: "", meaning: "Thật / thực tế; trực tiếp; tả thực" },
+{ word: "構え", reading: "かまえ", meaning: "Cử chỉ điệu bộ; tư thế/điệu bộ; tư thế sẵn sàng; kết cấu/bố cục" },
+{ word: "見込み", reading: "みこみ", meaning: "Tính khả năng" },
+{ word: "賢者", reading: "けんじゃ", meaning: "Người hiền, hiền nhân, hiền tài" },
+{ word: "幹", reading: "みき", meaning: "Bộ phận của cây mọc từ rễ lên trên và tạo ra cành và lá" },
+{ word: "劣化する", reading: "れっかする", meaning: "Sự làm hư hỏng, sự giảm phẩm cấp" },
+{ word: "針葉樹", reading: "しんようじゅ", meaning: "Cây tùng bách" },
+{ word: "広葉樹", reading: "こうようじゅ", meaning: "Cây lá rộng" },
+{ word: "温かさ", reading: "あたたかさ", meaning: "Sự ấm áp" },
+{ word: "自問自答する", reading: "じもんじとうする", meaning: "Tự đặt câu hỏi" },
+{ word: "人格", reading: "じんかく", meaning: "Tính cách" },
+{ word: "頭ごなしに", reading: "あたまごなしに", meaning: "Gạt phắt / áp đặt ngay từ đầu, không chịu lắng nghe" },
+{ word: "エピソード", reading: "", meaning: "Chương, phần, tập/đoạn; giai thoại" },
+{ word: "キャラクター", reading: "", meaning: "Đặc trưng, đặc điểm, tính cách" },
+{ word: "尊敬に値する", reading: "そんけいにあたいする", meaning: "Đáng được tôn trọng" },
+{ word: "憤慨を覚える", reading: "ふんがいをおぼえる", meaning: "Cảm thấy tức giận" },
+{ word: "趣旨", reading: "しゅし", meaning: "Ý đồ, mục đích" },
+{ word: "～に照らし合わせれば", reading: "にてらしあわせれば", meaning: "Nếu soi chiếu / đối chiếu theo ~; xét theo ~" },
+{ word: "不意", reading: "ふい", meaning: "Sự đột nhiên, sự không ngờ tới" },
+{ word: "わけもなく", reading: "", meaning: "Không vì lý do gì; một cách dễ dàng (trong vài ngữ cảnh)" },
+{ word: "培う", reading: "つちかう", meaning: "Bồi dưỡng; vun xới" },
+{ word: "なんら", reading: "", meaning: "(trong câu phủ định) hoàn toàn không" },
+{ word: "仕掛け", reading: "しかけ", meaning: "Cơ chế; mánh lới; thiết bị; chiêu trò; cạm bẫy" },
+{ word: "先入観", reading: "せんにゅうかん", meaning: "Thành kiến; định kiến" },
+{ word: "多様性", reading: "たようせい", meaning: "Tính đa dạng" },
+{ word: "遠足", reading: "えんそく", meaning: "Chuyến tham quan; dã ngoại" },
+{ word: "修学旅行", reading: "しゅうがくりょこう", meaning: "Cuộc du lịch để phục vụ học tập" },
+{ word: "弥次喜多", reading: "やじきた", meaning: "Cặp hài hước, cặp trào" },
+{ word: "見知らぬ", reading: "みしらぬ", meaning: "Không biết; không quen; lạ; không nhận ra" },
+{ word: "風物", reading: "ふうぶつ", meaning: "Cảnh vật" },
+{ word: "計算機", reading: "けいさんき", meaning: "Máy tính bỏ túi" },
+{ word: "データベース", reading: "", meaning: "Cơ sở dữ liệu" },
+{ word: "購買者", reading: "こうばいしゃ", meaning: "Người mua" },
+{ word: "状勢", reading: "じょうせい", meaning: "Tình trạng; hoàn cảnh; trạng thái (của những quan hệ)" },
+{ word: "豊富", reading: "ほうふ", meaning: "Phong phú; giàu có" },
+{ word: "拘束", reading: "こうそく", meaning: "Sự câu thúc; sự ràng buộc" },
+{ word: "制約", reading: "せいやく", meaning: "Giới hạn; ràng buộc; điều kiện hạn chế" },
+{ word: "余裕", reading: "よゆう", meaning: "Phần dư; thời gian dư; tâm thế thong thả" },
+{ word: "謙虚", reading: "けんきょ", meaning: "Khiêm nhường; khiêm tốn" },
+{ word: "もしくは", reading: "", meaning: "Hoặc là; hay là" },
+{ word: "～に共感する", reading: "～にきょうかんする", meaning: "Đồng cảm với ~" },
+{ word: "画用紙", reading: "がようし", meaning: "Giấy vẽ" },
+{ word: "鉛筆", reading: "えんぴつ", meaning: "Bút chì" },
+{ word: "水性絵具", reading: "すいせいえぐ", meaning: "Sơn nước" },
+{ word: "芯", reading: "しん", meaning: "Phần cốt lõi; phần trung tâm" },
+{ word: "油分", reading: "ゆぶん", meaning: "Có thành phần dầu" },
+{ word: "色鉛筆", reading: "いろえんぴつ", meaning: "Bút chì màu" },
+{ word: "約束事", reading: "やくそくごと", meaning: "Sự hứa hẹn" },
+{ word: "当事者", reading: "とうじしゃ", meaning: "Bên hữu quan, người có liên quan" },
+{ word: "格段に", reading: "かくだん", meaning: "Đáng kể; đáng chú ý" },
+{ word: "民主的", reading: "みんしゅてき", meaning: "Tính dân chủ" },
+{ word: "締結", reading: "ていけつ", meaning: "Kết luận; hợp đồng" },
+{ word: "旬", reading: "じゅん", meaning: "Tuần; thời điểm chính vụ (mùa thực phẩm ngon nhất)" },
+{ word: "教養", reading: "きょうよう", meaning: "Học vấn / tri thức văn hóa" },
+{ word: "相対化", reading: "そうたいか", meaning: "Tương đối hoá" },
+{ word: "曖昧", reading: "あいまい", meaning: "Mơ hồ, không rõ ràng" },
+{ word: "感化", reading: "かんか", meaning: "Sự cảm hoá" },
+{ word: "踏まえる", reading: "ふまえる", meaning: "Dựa trên / căn cứ vào / xét đến" },
+{ word: "絶対視する", reading: "ぜったいする", meaning: "Coi là tuyệt đối / xem là chân lý duy nhất" },
+{ word: "乖離", reading: "かいり", meaning: "Sự xa rời" },
+{ word: "溜まり", reading: "たまり", meaning: "Trữ, chứa, chỗ tụ lại, nơi chứa, bãi tích tụ" },
+{ word: "発散", reading: "はっさん", meaning: "Sự phát tán" },
+{ word: "発揮", reading: "はっき", meaning: "Sự phát huy" },
+{ word: "磨く", reading: "みがく", meaning: "Đánh bóng" },
+{ word: "違和感", reading: "いわかん", meaning: "Cảm giác khác biệt; cảm giác khó chịu" },
+{ word: "奇抜", reading: "きばつ", meaning: "Mới lạ; độc đáo; gây ấn tượng" },
+{ word: "行きずり", reading: "いきずり", meaning: "Người đi ngang qua / tạm thời / thoáng qua" },
+{ word: "共通認識", reading: "きょうつうにんしき", meaning: "Nhận thức chung" },
+{ word: "配慮", reading: "はいりょ", meaning: "Sự quan tâm" },
+{ word: "謝る", reading: "あやまる", meaning: "Xin lỗi" },
+{ word: "順序", reading: "じゅんじょ", meaning: "Sự theo thứ tự" },
+{ word: "従来", reading: "じゅうらい", meaning: "Cho đến giờ; từ trước đến nay" },
+{ word: "顧客", reading: "こきゃく", meaning: "Bạn hàng; khách hàng" },
+{ word: "動機", reading: "どうき", meaning: "Căn duyên; động cơ" },
+{ word: "観光", reading: "かんこう", meaning: "Sự du lãm; du lịch" },
+{ word: "必然的", reading: "ひつぜんてき", meaning: "Có tính tất nhiên" },
+{ word: "丹念", reading: "たんねん", meaning: "Chú ý đến từng chi tiết; cẩn thận" },
+{ word: "背景", reading: "はいけい", meaning: "Bối cảnh" },
+{ word: "装飾的", reading: "そうしょくてき", meaning: "Để trang hoàng; để trang trí; để làm cảnh" },
+{ word: "皮膚", reading: "ひふ", meaning: "Da; lớp da" },
+{ word: "膨らむ", reading: "ふくらむ", meaning: "Làm bành trướng; phồng lên" },
+{ word: "ガラス玉", reading: "ガラスだま", meaning: "Hạt cườm" },
+{ word: "移し替える", reading: "うつしかえる", meaning: "Chuyển sang; chuyển vào" },
+{ word: "罰則", reading: "ばっそく", meaning: "Quy tắc xử phạt" },
+{ word: "創意工夫", reading: "そういくふう", meaning: "Đầy sáng tạo; khéo léo nghĩ ra cách" },
+{ word: "作業効率", reading: "さぎょうこうりつ", meaning: "Năng suất làm việc; hiệu suất làm việc" },
+{ word: "強制的", reading: "きょうせいてき", meaning: "Miễn cưỡng; mang tính cưỡng chế / bắt buộc" },
+{ word: "体得する", reading: "たいとくする", meaning: "Tinh thông; nắm vững; lĩnh hội bằng trải nghiệm; thành thạo" },
+{ word: "チンプンカンプン", reading: "チンプンカンプン", meaning: "Hoàn toàn không hiểu câu chuyện người khác đang nói" },
+{ word: "少子化", reading: "しょうしか", meaning: "Giảm tỷ lệ sinh; giảm số lượng trẻ em" },
+{ word: "鉄道模型", reading: "てつどうもけい", meaning: "Mô hình đường sắt" },
+{ word: "カーナビ", reading: "カーナビ", meaning: "Hệ thống định vị của xe" },
+{ word: "模索する", reading: "もさくする", meaning: "Tìm kiếm; thăm dò" },
+{ word: "悠長", reading: "ゆうちょう", meaning: "Dàn trải; chậm chạp; thong thả (đến mức thiếu thực tế)" },
+{ word: "ニュアンス", reading: "ニュアンス", meaning: "Sắc thái" },
+{ word: "もやもやする", reading: "", meaning: "mơ hồ, lờ mờ, khó chịu trong lòng" },
+{ word: "金属製ボトル", reading: "きんぞくせいボトル", meaning: "chai kim loại" },
+{ word: "特性", reading: "とくせい", meaning: "Đặc trưng" },
+{ word: "織り込まれる", reading: "おりこまれる", meaning: "được dệt vào / bao gồm / lồng ghép" },
+{ word: "掻き消える", reading: "かききえる", meaning: "biến mất / tan biến (như khói)" },
+{ word: "きわめる", reading: "", meaning: "rèn luyện, bồi dưỡng, đạt đến cùng cực" },
+{ word: "マーケティング", reading: "", meaning: "tiếp thị" },
+{ word: "みみっちい", reading: "", meaning: "keo kiệt, nhỏ nhen, tầm thường" },
+{ word: "リアリティー", reading: "", meaning: "tính hiện thực" },
+{ word: "～に賛同する", reading: "～にさんどうする", meaning: "tán thành, đồng ý với ~" },
+{ word: "真摯", reading: "しんし", meaning: "chân thành, nghiêm túc, thành thật" },
+{ word: "見合う", reading: "みあう", meaning: "phù hợp, tương xứng" },
+{ word: "技巧", reading: "ぎこう", meaning: "kỹ xảo" },
+{ word: "繰り広げる", reading: "くりひろげる", meaning: "triển khai, mở rộng, diễn ra (trận đấu, chiến dịch...)" },
+{ word: "小手先", reading: "こてさき", meaning: "sự khéo léo, thủ thuật nửa vời, mánh lới, mẹo vặt" },
+{ word: "湧き出る", reading: "わきでる", meaning: "tuôn trào, sôi sục (ý tưởng, cảm xúc)" },
+{ word: "好奇心旺盛", reading: "こうきしんおうせい", meaning: "rất hiếu kỳ, tò mò mạnh mẽ" },
+{ word: "渦巻く", reading: "うずまく", meaning: "cuộn xoáy, xoay tròn (nước, khói, cảm xúc)" },
+{ word: "徹底的", reading: "てっていてき", meaning: "triệt để / thấu đáo" },
+{ word: "大胆に", reading: "だいたんに", meaning: "gan dạ" },
+{ word: "思い切って", reading: "おもいきって", meaning: "quyết tâm, mạnh dạn làm gì đó" },
+{ word: "違和感", reading: "いわかん", meaning: "cảm giác khác biệt, cảm giác khó chịu" },
+{ word: "減衰する", reading: "げんすい", meaning: "sự suy giảm, sự giảm dần" },
+{ word: "見知らぬ", reading: "みしらぬ", meaning: "không biết" },
+{ word: "ふるまう", reading: "ふるまう", meaning: "cư xử, tiếp đãi" },
+{ word: "秩序決まり", reading: "ちつじょきまり", meaning: "quyết định trật tự" },
+{ word: "列挙", reading: "れっきょ", meaning: "sự liệt kê" },
+{ word: "都度", reading: "つど", meaning: "mỗi lúc" },
+{ word: "面接に臨む", reading: "めんせつにのぞむ", meaning: "tham dự một cuộc phỏng vấn" },
+{ word: "当惑気味につぶやく", reading: "とうわくぎみ", meaning: "hơi bối rối, trông hơi bối rối" },
+{ word: "体温調節", reading: "たいおんちょうせつ", meaning: "điều hòa nhiệt độ cơ thể, điều hòa thân nhiệt" },
+{ word: "汗腺", reading: "かんせん", meaning: "(giải phẫu) tuyến mồ hôi" },
+{ word: "蒸発", reading: "じょうはつ", meaning: "bốc hơi / bay hơi / biến mất" },
+{ word: "大抵", reading: "たいてい", meaning: "hầu hết / phần lớn / thường là" },
+{ word: "印刷", reading: "いんさつ", meaning: "in ấn / in ra" },
+{ word: "掲載", reading: "けいさい", meaning: "đăng tải (bài, ảnh lên báo, web)" },
+{ word: "就寝", reading: "しゅうしん", meaning: "đi ngủ" },
+{ word: "把握する", reading: "はあく", meaning: "nắm bắt, hiểu rõ" },
+{ word: "仕来たり", reading: "しきたり", meaning: "phong tục, lệ thường, quy tắc truyền thống" },
+{ word: "おのずと", reading: "おのずと", meaning: "một cách tự nhiên" },
+{ word: "従来", reading: "じゅうらい", meaning: "cho đến giờ" },
+{ word: "画期的", reading: "かっきてき", meaning: "tính bước ngoặt, mang tính đột phá" },
+{ word: "使いこなす", reading: "つかいこなす", meaning: "sử dụng thành thạo, thuần thục" },
+{ word: "反発", reading: "はんぱつ", meaning: "sự cự tuyệt" },
+{ word: "反抗", reading: "はんこう", meaning: "sự phản kháng, phản đối / bật lại / từ chối mạnh mẽ" },
+{ word: "孤独", reading: "こどく", meaning: "cô đơn" },
+{ word: "哺乳類", reading: "ほにゅうるい", meaning: "loài có vú, động vật có vú" },
+{ word: "進化", reading: "しんか", meaning: "sự tiến hóa" },
+{ word: "未就学児", reading: "みしゅうがくじ", meaning: "học sinh mầm non, trẻ chưa đến tuổi đi học" },
+{ word: "好奇心", reading: "こうきしん", meaning: "tính hiếu kỳ" },
+{ word: "順位制", reading: "じゅんいせい", meaning: "chế độ / hệ thống xếp hạng" },
+{ word: "生得的", reading: "せいとくてき", meaning: "bẩm sinh, vốn có, tự nhiên" },
+{ word: "円滑に", reading: "えんかつに", meaning: "một cách êm ái, trôi chảy" },
+{ word: "名所旧跡", reading: "めいしょきゅうせき", meaning: "di tích lịch sử nổi tiếng" },
+{ word: "雑踏", reading: "ざっとう", meaning: "sự đông nghịt" },
+{ word: "勤務先", reading: "きんむさき", meaning: "nơi làm việc" },
+{ word: "旧跡", reading: "ふるあと", meaning: "di tích lịch sử" },
+{ word: "投函する", reading: "とうかんする", meaning: "Sự bỏ vào, sự thả vào, bỏ thư / đơn vào hòm" },
+{ word: "駆け引き", reading: "かけひき", meaning: "sự mặc cả, sự thương lượng mua bán, đấu trí" },
+{ word: "ぬくもり", reading: "", meaning: "sự ấm áp" },
+{ word: "感性", reading: "かんせい", meaning: "cảm tính, cảm nhận, nhạy cảm, khả năng cảm thụ" },
+{ word: "規格", reading: "きかく", meaning: "khuôn khổ, tiêu chuẩn, quy cách, chuẩn mực kỹ thuật" },
+{ word: "粗悪品", reading: "そあくひん", meaning: "hàng kém chất lượng" },
+{ word: "強烈な", reading: "きょうれつ", meaning: "quyết liệt, mạnh mẽ" },
+{ word: "ノルマ", reading: "", meaning: "(hạn ngạch) của một người" },
+{ word: "ハードル", reading: "", meaning: "môn chạy vượt rào; (nghĩa bóng) rào cản, khó khăn" },
+{ word: "締めくくる", reading: "しめくくる", meaning: "kết thúc, hoàn tất" },
+{ word: "神経回路", reading: "しんけいかいろ", meaning: "mạch thần kinh" },
+{ word: "矯正する", reading: "きょうせい", meaning: "chỉnh lại, uốn nắn, chỉnh răng, sửa sai" },
+{ word: "ランナー", reading: "", meaning: "người chạy, vận động viên chạy" },
+{ word: "糸口", reading: "いとぐち", meaning: "đầu mối, manh mối" },
+{ word: "身のこなし", reading: "みのこなし", meaning: "cách di chuyển linh hoạt, cử chỉ, tác phong" }
+];
+
+// ===== STATE =====
+let lessonData = [];
+let currentIndex = 0;
+let currentQuestion;
+
+let correctCount = 0;
+let wrongCount = 0;
+let score = 0;
+let wrongList = [];
+
+// ===== UTILS =====
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+// ===== START =====
+function startLesson() {
+  lessonData = [...data];
+  shuffle(lessonData);
+
+  currentIndex = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  score = 0;
+  wrongList = [];
+
+  newQuestion();
+}
+
+// ===== UPDATE UI =====
+function updateProgress() {
+  document.getElementById("progressText").innerText =
+    currentIndex + " / " + lessonData.length;
+
+  document.getElementById("progressBar").style.width =
+    (currentIndex / lessonData.length) * 100 + "%";
+
+  document.getElementById("correct").innerText = correctCount;
+  document.getElementById("wrong").innerText = wrongCount;
+  document.getElementById("score").innerText = score;
+}
+
+// ===== NEW QUESTION =====
+function newQuestion() {
+  if (currentIndex >= lessonData.length) {
+    alert("🎉 Hoàn thành!\nSai: " + wrongList.length + " từ");
+    console.log("Từ sai:", wrongList);
+    return;
+  }
+
+  currentQuestion = lessonData[currentIndex];
+  currentIndex++;
+
+  updateProgress();
+
+  let options = [currentQuestion];
+
+  while (options.length < 4) {
+    let rand = data[Math.floor(Math.random() * data.length)];
+    if (!options.includes(rand)) options.push(rand);
+  }
+
+  options = shuffle(options);
+
+  document.getElementById("question").innerText =
+    currentQuestion.meaning;
+
+  const answerDiv = document.getElementById("answers");
+  answerDiv.innerHTML = "";
+
+  options.forEach(opt => {
+    let btn = document.createElement("div");
+    btn.className = "btn";
+
+    // show reading nếu có
+    btn.innerText = opt.word + (opt.reading ? " (" + opt.reading + ")" : "");
+
+    btn.onclick = () => checkAnswer(btn, opt);
+
+    answerDiv.appendChild(btn);
+  });
+}
+
+// ===== CHECK =====
+function checkAnswer(btn, selected) {
+  const buttons = document.querySelectorAll(".btn");
+  buttons.forEach(b => b.onclick = null);
+
+  if (selected.word === currentQuestion.word) {
+    btn.classList.add("correct");
+    correctCount++;
+    score++;
+  } else {
+    btn.classList.add("wrong");
+    wrongCount++;
+    wrongList.push(currentQuestion);
+
+    buttons.forEach(b => {
+      if (b.innerText.includes(currentQuestion.word)) {
+        b.classList.add("correct");
+      }
+    });
+  }
+
+  updateProgress();
+
+  setTimeout(newQuestion, 800);
+}
+
+// ===== RUN =====
+startLesson();
+</script>
+
+</body>
+</html>

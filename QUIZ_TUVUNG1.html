@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT Quiz</title>
+
+<style>
+body {
+  font-family: Arial;
+  padding: 16px;
+  max-width: 500px;
+  margin: auto;
+  background: #f9f9f9;
+}
+
+/* Progress */
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.progress-bar {
+  flex: 1;
+  height: 10px;
+  background: #eee;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.progress {
+  height: 100%;
+  background: #4caf50;
+  width: 0%;
+  transition: 0.3s;
+}
+
+/* Card */
+.card {
+  background: #fff;
+  border-radius: 15px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Question */
+#question {
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Answers */
+.answers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Button */
+.btn {
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  font-size: 18px;
+  background: #fff;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn:active {
+  transform: scale(0.98);
+  background: #eee;
+}
+
+.correct {
+  background: #c8f7c5;
+}
+
+.wrong {
+  background: #f7c5c5;
+}
+
+/* Stats */
+.stats {
+  margin-top: 20px;
+  font-size: 16px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Progress -->
+<div class="progress-container">
+  <div class="progress-bar">
+    <div class="progress" id="progressBar"></div>
+  </div>
+  <span id="progressText">0 / 0</span>
+</div>
+
+<!-- Card -->
+<div class="card">
+  <div id="question"></div>
+  <div class="answers" id="answers"></div>
+
+  <div class="stats">
+    <p>✅ Đúng: <span id="correct">0</span></p>
+    <p>❌ Sai: <span id="wrong">0</span></p>
+    <p>🏆 Điểm: <span id="score">0</span></p>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const data = [
+{ word: "非営利", reading: "ひえいり", meaning: "Phi lợi nhuận" },
+{ word: "協会", reading: "きょうかい", meaning: "Hiệp hội" },
+{ word: "預かる", reading: "あずかる", meaning: "Nhận giữ hộ" },
+{ word: "預ける", reading: "あずける", meaning: "Gửi / nhờ giữ hộ" },
+{ word: "養成", reading: "ようせい", meaning: "đào tạo/ bồi dưỡng để trở thành người có kỹ năng / nghề nghiệp" },
+{ word: "講座", reading: "こうざ", meaning: "khóa học/ lớp học" },
+{ word: "養成講座", reading: "ようせいこうざ", meaning: "khóa đào tạo để trở thành…" },
+{ word: "消費", reading: "しょうひ", meaning: "tiêu dùng/ tiêu thụ/ sử dụng hết một thứ gì đó (thường là tiền/ năng lượng/ hàng hóa)." },
+{ word: "消費者", reading: "しょうひしゃ", meaning: "người tiêu dùng" },
+{ word: "消費税", reading: "しょうひぜい", meaning: "thuế tiêu dùng" },
+{ word: "消費量", reading: "しょうひりょう", meaning: "Lượng tiêu thụ" },
+{ word: "基礎代謝", reading: "きそたいしゃ", meaning: "Tỷ lệ trao đổi chất cơ bản / mức tiêu hao năng lượng cơ bản của cơ thể.lượng năng lượng (calo) cơ thể tự tiêu thụ để duy trì sự sống/ ngay cả khi bạn không làm gì cả" },
+{ word: "代謝", reading: "たいしゃ", meaning: "trao đổi chất" },
+{ word: "胸", reading: "むね", meaning: "nguc" },
+{ word: "レントゲン", reading: "", meaning: "Chụp X-quang" },
+{ word: "経済的", reading: "けいざいてき", meaning: "tính kinh tế/ không tốn kém/ tiết kiệm chi phí." },
+{ word: "音が聞けてなるべく経済的な辞書が買いたい。", reading: "", meaning: "Tôi muốn mua một cuốn từ điển có thể nghe được âm thanh (phát âm) và càng tiết kiệm tiền càng tốt." },
+{ word: "安さ", reading: "やすさ", meaning: "độ rẻ / mức độ rẻ của giá." },
+{ word: "ちらし", reading: "チラシ", meaning: "" },
+{ word: "散らす", reading: "ちらす", meaning: "rải ra/ phát tán → ちらし = thứ được rải / phát ra (tờ quảng cáo)." },
+{ word: "温暖化", reading: "おんだんか", meaning: "sự ấm lên" },
+{ word: "地球温暖化", reading: "ちきゅうおんだんか", meaning: "nóng lên toàn cầu" },
+{ word: "防ぐ", reading: "ふせぐ", meaning: "ngăn chặn/ phòng tránh/ chặn lại điều gì đó xấu xảy ra." },
+{ word: "手を洗うことで病気を防ぐことができます。", reading: "", meaning: "Rửa tay có thể phòng bệnh." },
+{ word: "シートベルトは事故のけがを防ぎます", reading: "", meaning: "Dây an toàn giúp ngăn chấn thương khi tai nạn." },
+{ word: "省エネ", reading: "しょうえね", meaning: "省エネ（しょうエネ / shōene） là viết tắt của:省エネルギー（しょうエネルギー）👉 nghĩa là tiết kiệm năng lượng." },
+{ word: "面倒", reading: "めんどう", meaning: "Phiền phức/ rắc rối：面倒な仕事Chăm sóc / trông nom：子どもの面倒を見る。ー＞chăm sóc trẻ em" },
+{ word: "二酸化炭素", reading: "にさんかたんそ", meaning: "khí carbon dioxide (CO₂)." },
+{ word: "〜っぱなし", reading: "ます (bỏ ます) + っぱなし", meaning: "Nghĩa: để nguyên trạng thái đó/ không thay đổi / không tắt / không dọn / không làm tiếp.Thường mang sắc thái không tốt hoặc bất cẩn." },
+{ word: "排出", reading: "はいしゅつ", meaning: "hải ra/ xả ra　排出量 = lượng được thải ra" },
+{ word: "抑えられる", reading: "おさえられる", meaning: "có thể kiềm chế / giảm xuống / hạn chế" },
+{ word: "開催", reading: "かいさい", meaning: "tổ chức/ mở ra (sự kiện/ hội nghị/ cuộc thi…)" },
+{ word: "多数", reading: "たすう", meaning: "nhiều/ số lượng lớn/ đa số" },
+{ word: "保育", reading: "ほいく", meaning: "chăm sóc và nuôi dạy trẻ nhỏ (thường là ở nhà trẻ/ mẫu giáo)." },
+{ word: "定員", reading: "ていいん", meaning: "sức chứa quy định/ số lượng người tối đa được phép (chỉ tiêu / quota)." },
+{ word: "講師", reading: "こうし", meaning: "giảng viên/ người giảng dạy (thường là người dạy trong khóa học/ hội thảo/ lớp đào tạo)." },
+{ word: "講演", reading: "こうえん", meaning: "bài diễn thuyết/ buổi thuyết trình trước nhiều người." },
+{ word: "傷", reading: "きず", meaning: "vết thương/ vết trầy/ vết sẹo.　Vết xước trên đồ vật" },
+{ word: "傷口", reading: "きずぐち", meaning: "miệng vết thương" },
+{ word: "傷跡", reading: "きずあと", meaning: "vết sẹo" },
+{ word: "含まれる", reading: "ふくまれる", meaning: "được bao gồm/ được chứa trong/ được tính trong." },
+{ word: "含む", reading: "ふくむ", meaning: "bao gồm/ chứa." },
+{ word: "亜鉛", reading: "あえん", meaning: "kẽm (một nguyên tố kim loại)." },
+{ word: "亜鉛は体に必要なミネラルです", reading: "", meaning: "Kẽm là khoáng chất cần thiết cho cơ thể." },
+{ word: "元素", reading: "げんそ", meaning: "nguyên tố (hóa học)." },
+{ word: "ポリフェノール", reading: "", meaning: "polyphenol – một nhóm chất chống oxy hóa có trong thực vật." },
+{ word: "皮膚", reading: "ひふ", meaning: "da/ lớp da của cơ thể." },
+{ word: "皮膚がかゆいです", reading: "", meaning: "Da bị ngứa." },
+{ word: "炎症", reading: "えんしょう", meaning: "viêm/ tình trạng viêm (trong y học)." },
+{ word: "皮膚に炎症があります", reading: "", meaning: "Da bị viêm." },
+{ word: "この薬は炎症を抑えます。", reading: "", meaning: "Thuốc này làm giảm viêm." },
+{ word: "美容", reading: "びよう", meaning: "làm đẹp/ chăm sóc sắc đẹp" },
+{ word: "美容に気を使っています", reading: "", meaning: "Tôi chú ý chăm sóc sắc đẹp" },
+{ word: "N をもとにして", reading: "", meaning: "dựa trên / căn cứ vào" },
+{ word: "この人は何をもとにしてクレジットカードを選んだらいいか。", reading: "", meaning: "Người này nên dựa vào điều gì để chọn thẻ tín dụng?" },
+{ word: "データをもとにして分析する", reading: "", meaning: "Phân tích dựa trên dữ liệu." },
+{ word: "生じる", reading: "しょうじる", meaning: "phát sinh・nảy sinh・xảy ra・tạo ra・Thường dùng cho vấn đề/ sự khác biệt/ thay đổi/ nghi ngờ/ lỗi…" },
+{ word: "問題が生じる。", reading: "", meaning: "phát sinh vấn đề." },
+{ word: "手間", reading: "てま", meaning: "công sức・thời gian và công sức phải bỏ ra・sự phiền phức / tốn công" },
+{ word: "想定", reading: "そうてい", meaning: "giả định・dự kiến・ước tính trước・tưởng tượng trước một tình huống" },
+{ word: "自体", reading: "じたい", meaning: "bản thân…chính…ngay bản thân cái đó(Dùng để nhấn mạnh chính đối tượng đó/ không phải yếu tố khác)" },
+{ word: "つまり", reading: "", meaning: "tức là/nói cách khác/ý là.." },
+{ word: "すでに", reading: "", meaning: "phó từ (副詞) đã/ đã rồi" },
+{ word: "平均", reading: "へいきん", meaning: "trung bình/ bình quân" },
+{ word: "当方", reading: "当方", meaning: "Phía chúng tôi / bên chúng tôi / phía tôi" },
+{ word: "目安", reading: "めやす", meaning: "Mốc tham khảo / tiêu chuẩn ước lượng / hướng dẫn để ước chừng" },
+{ word: "気がする", reading: "", meaning: "cảm thấy như là / có cảm giác là / hình như" },
+{ word: "気を付ける", reading: "", meaning: "chú ý / cẩn thận" },
+{ word: "気が付く", reading: "", meaning: "nhận ra" },
+{ word: "気になる", reading: "", meaning: "cảm thấy bận tâm / tò mò / thấy đáng chú ý" },
+{ word: "気にする", reading: "", meaning: "để ý / lo lắng / bận tâm quá mức" },
+{ word: "新しいiPhoneが気になる。", reading: "", meaning: "Tôi thấy hứng thú / tò mò về iPhone mới." },
+{ word: "そんなこと気にしないでください。", reading: "", meaning: "Đừng bận tâm chuyện đó." },
+{ word: "彼は怒っている気がする", reading: "", meaning: "Tôi cảm thấy anh ấy có vẻ đang giận." },
+{ word: "気に入る", reading: "", meaning: "thích / rất ưng / hài lòng với cái gì đó" },
+{ word: "のが・のも・のは", reading: "", meaning: "dịch là cái việc/ dịch ngược từ nó lên" },
+{ word: "具合", reading: "ぐあい", meaning: "tình trạng / trạng thái / mức độ / tình hình" },
+{ word: "頼る", reading: "たよる", meaning: "sự dựa dẫm / chỗ dựa / điều có thể trông cậy" },
+{ word: "にしろ", reading: "", meaning: "N + にしろ・AにしろBにしろlà một ngữ pháp tiếng Nhật có nghĩa chính:dù là ~ / cho dù là ~ / ngay cả ~ cũng" },
+{ word: "行くにしろ、行かないにしろ、早く決めてください。", reading: "", meaning: "Dù đi hay không đi/ hãy quyết định sớm." },
+{ word: "冗談にしろ、言い過ぎだ。", reading: "", meaning: "Dù là nói đùa/ cũng nói quá rồi." },
+{ word: "内面", reading: "ないめん", meaning: "bên trong / nội tâm / mặt bên trong của con người" },
+{ word: "鑑賞する", reading: "かんしょうする", meaning: "thưởng thức / thưởng ngoạn (nghệ thuật)" },
+{ word: "観賞する", reading: "かんしょうする", meaning: "ngắm (thiên nhiên/ hoa)" },
+{ word: "観る", reading: "みる", meaning: "xem (phim/ biểu diễn/ chương trình)" },
+{ word: "診る", reading: "みる", meaning: "khám bệnh" },
+{ word: "手法", reading: "しゅほう", meaning: "phương pháp / kỹ thuật / cách thức thực hiện" },
+{ word: "憧れる", reading: "あこがれる", meaning: "ngưỡng mộ / mơ ước được như ai đó" },
+{ word: "彼に憧れています。", reading: "", meaning: "Tôi ngưỡng mộ anh ấy." },
+{ word: "役割", reading: "やくわり", meaning: "vai trò" },
+{ word: "私の役割は要件分析です。", reading: "", meaning: "Vai trò của tôi là phân tích yêu cầu." },
+{ word: "チームの役割を分担する。", reading: "", meaning: "Phân chia vai trò trong team." },
+{ word: "果たす", reading: "はたす", meaning: "hoàn thành / thực hiện" },
+{ word: "役割を果たす", reading: "", meaning: "đóng vai trò" },
+{ word: "約束を果たす", reading: "", meaning: "giữ lời hứa" },
+{ word: "義務を果たす", reading: "", meaning: "thực hiện nghĩa vụ" },
+{ word: "満たす", reading: "みたす", meaning: "làm cho đầy / đáp ứng / thỏa mãn (điều kiện/ yêu cầu)" },
+{ word: "コップを水で満たす。", reading: "", meaning: "Làm đầy cốc bằng nước." },
+{ word: "要求を満たす。", reading: "", meaning: "Đáp ứng yêu cầu." },
+{ word: "応募条件を満たしていません。", reading: "", meaning: "Không đáp ứng điều kiện ứng tuyển." },
+{ word: "明らか", reading: "あきらか", meaning: "rõ ràng / hiển nhiên / rõ rệt" },
+{ word: "問題の原因が明らかになった。", reading: "", meaning: "Nguyên nhân của vấn đề đã trở nên rõ ràng." },
+{ word: "彼は明らかに怒っている。", reading: "", meaning: "Anh ấy rõ ràng đang tức giận." },
+{ word: "周囲", reading: "しゅうい", meaning: "xung quanh / những người xung quanh / môi trường xung quanh" },
+{ word: "肺", reading: "はい", meaning: "phổi（co the cua con nguoi)" },
+];
+
+// ===== STATE =====
+let lessonData = [];
+let currentIndex = 0;
+let currentQuestion;
+
+let correctCount = 0;
+let wrongCount = 0;
+let score = 0;
+let wrongList = [];
+
+// ===== UTILS =====
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+// ===== START =====
+function startLesson() {
+  lessonData = [...data];
+  shuffle(lessonData);
+
+  currentIndex = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  score = 0;
+  wrongList = [];
+
+  newQuestion();
+}
+
+// ===== UPDATE UI =====
+function updateProgress() {
+  document.getElementById("progressText").innerText =
+    currentIndex + " / " + lessonData.length;
+
+  document.getElementById("progressBar").style.width =
+    (currentIndex / lessonData.length) * 100 + "%";
+
+  document.getElementById("correct").innerText = correctCount;
+  document.getElementById("wrong").innerText = wrongCount;
+  document.getElementById("score").innerText = score;
+}
+
+// ===== NEW QUESTION =====
+function newQuestion() {
+  if (currentIndex >= lessonData.length) {
+    alert("🎉 Hoàn thành!\nSai: " + wrongList.length + " từ");
+    console.log("Từ sai:", wrongList);
+    return;
+  }
+
+  currentQuestion = lessonData[currentIndex];
+  currentIndex++;
+
+  updateProgress();
+
+  let options = [currentQuestion];
+
+  while (options.length < 4) {
+    let rand = data[Math.floor(Math.random() * data.length)];
+    if (!options.includes(rand)) options.push(rand);
+  }
+
+  options = shuffle(options);
+
+  document.getElementById("question").innerText =
+    currentQuestion.meaning;
+
+  const answerDiv = document.getElementById("answers");
+  answerDiv.innerHTML = "";
+
+  options.forEach(opt => {
+    let btn = document.createElement("div");
+    btn.className = "btn";
+
+    // show reading nếu có
+    btn.innerText = opt.word + (opt.reading ? " (" + opt.reading + ")" : "");
+
+    btn.onclick = () => checkAnswer(btn, opt);
+
+    answerDiv.appendChild(btn);
+  });
+}
+
+// ===== CHECK =====
+function checkAnswer(btn, selected) {
+  const buttons = document.querySelectorAll(".btn");
+  buttons.forEach(b => b.onclick = null);
+
+  if (selected.word === currentQuestion.word) {
+    btn.classList.add("correct");
+    correctCount++;
+    score++;
+  } else {
+    btn.classList.add("wrong");
+    wrongCount++;
+    wrongList.push(currentQuestion);
+
+    buttons.forEach(b => {
+      if (b.innerText.includes(currentQuestion.word)) {
+        b.classList.add("correct");
+      }
+    });
+  }
+
+  updateProgress();
+
+  setTimeout(newQuestion, 800);
+}
+
+// ===== RUN =====
+startLesson();
+</script>
+
+</body>
+</html>
