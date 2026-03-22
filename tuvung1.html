@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JLPT Quiz</title>
+
+<title>tuvung1</title> <!-- 🔴 SỬA: đổi theo level -->
+
+<link rel="manifest" href="manifest.json">
 
 <style>
 body {
@@ -14,11 +17,24 @@ body {
   background: #f9f9f9;
 }
 
-/* Progress */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.back-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #ccc;
+}
+
 .progress-container {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 10px;
 }
 .progress-bar {
   flex: 1;
@@ -31,26 +47,21 @@ body {
   height: 100%;
   background: #4caf50;
   width: 0%;
-  transition: 0.3s;
 }
 
-/* Card */
 .card {
   background: #fff;
   border-radius: 15px;
   padding: 20px;
   margin-top: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* Question */
 #question {
   font-size: 22px;
   font-weight: bold;
   text-align: center;
 }
 
-/* Answers */
 .answers {
   display: flex;
   flex-direction: column;
@@ -58,42 +69,40 @@ body {
   margin-top: 20px;
 }
 
-/* Button */
 .btn {
   padding: 18px;
   border-radius: 12px;
   border: 1px solid #ddd;
   font-size: 18px;
   background: #fff;
-  text-align: center;
-  cursor: pointer;
-  transition: 0.2s;
 }
 
-.btn:active {
-  transform: scale(0.98);
-  background: #eee;
-}
+.correct { background: #c8f7c5; }
+.wrong { background: #f7c5c5; }
 
-.correct {
-  background: #c8f7c5;
-}
-
-.wrong {
-  background: #f7c5c5;
-}
-
-/* Stats */
 .stats {
   margin-top: 20px;
-  font-size: 16px;
+}
+
+.action-btn {
+  margin-top: 10px;
+  padding: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: #4caf50;
+  color: white;
 }
 </style>
 </head>
 
 <body>
 
-<!-- Progress -->
+<div class="top-bar">
+  <button class="back-btn" onclick="goBack()">⬅ Back</button>
+  <h3>MEMO tu vung sach 読解問題55＋</h3> <!-- 🔴 SỬA -->
+</div>
+
 <div class="progress-container">
   <div class="progress-bar">
     <div class="progress" id="progressBar"></div>
@@ -101,7 +110,6 @@ body {
   <span id="progressText">0 / 0</span>
 </div>
 
-<!-- Card -->
 <div class="card">
   <div id="question"></div>
   <div class="answers" id="answers"></div>
@@ -110,11 +118,22 @@ body {
     <p>✅ Đúng: <span id="correct">0</span></p>
     <p>❌ Sai: <span id="wrong">0</span></p>
     <p>🏆 Điểm: <span id="score">0</span></p>
+    <p>📚 Từ sai: <span id="wrongTotal">0</span></p>
   </div>
+
+  <button class="action-btn" onclick="reviewWrong()">🔁 Học lại từ sai</button>
 </div>
 
 <script>
-// ===== DATA =====
+// ==========================
+// 🔴 SỬA: LEVEL NAME
+// ==========================
+const LEVEL = "tuvung1"; 
+const STORAGE_KEY = "wrongList_" + LEVEL;
+
+// ==========================
+// 🔴 SỬA: DATA
+// ==========================
 const data = [
 { word: "非営利", reading: "ひえいり", meaning: "Phi lợi nhuận" },
 { word: "協会", reading: "きょうかい", meaning: "Hiệp hội" },
@@ -233,9 +252,31 @@ let wrongCount = 0;
 let score = 0;
 let wrongList = [];
 
+// ===== LOAD LOCAL =====
+const savedWrong = localStorage.getItem(STORAGE_KEY);
+if (savedWrong) {
+  wrongList = JSON.parse(savedWrong);
+}
+
 // ===== UTILS =====
 function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5);
+}
+
+function saveWrong() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(wrongList));
+}
+
+function addWrong(wordObj) {
+  if (!wrongList.some(w => w.word === wordObj.word)) {
+    wrongList.push(wordObj);
+    saveWrong();
+  }
+}
+
+function removeWrong(wordObj) {
+  wrongList = wrongList.filter(w => w.word !== wordObj.word);
+  saveWrong();
 }
 
 // ===== START =====
@@ -247,7 +288,6 @@ function startLesson() {
   correctCount = 0;
   wrongCount = 0;
   score = 0;
-  wrongList = [];
 
   newQuestion();
 }
@@ -263,13 +303,13 @@ function updateProgress() {
   document.getElementById("correct").innerText = correctCount;
   document.getElementById("wrong").innerText = wrongCount;
   document.getElementById("score").innerText = score;
+  document.getElementById("wrongTotal").innerText = wrongList.length;
 }
 
 // ===== NEW QUESTION =====
 function newQuestion() {
   if (currentIndex >= lessonData.length) {
-    alert("🎉 Hoàn thành!\nSai: " + wrongList.length + " từ");
-    console.log("Từ sai:", wrongList);
+    alert("🎉 Hoàn thành!");
     return;
   }
 
@@ -297,7 +337,6 @@ function newQuestion() {
     let btn = document.createElement("div");
     btn.className = "btn";
 
-    // show reading nếu có
     btn.innerText = opt.word + (opt.reading ? " (" + opt.reading + ")" : "");
 
     btn.onclick = () => checkAnswer(btn, opt);
@@ -315,10 +354,11 @@ function checkAnswer(btn, selected) {
     btn.classList.add("correct");
     correctCount++;
     score++;
+    removeWrong(currentQuestion);
   } else {
     btn.classList.add("wrong");
     wrongCount++;
-    wrongList.push(currentQuestion);
+    addWrong(currentQuestion);
 
     buttons.forEach(b => {
       if (b.innerText.includes(currentQuestion.word)) {
@@ -328,12 +368,39 @@ function checkAnswer(btn, selected) {
   }
 
   updateProgress();
-
   setTimeout(newQuestion, 800);
 }
 
-// ===== RUN =====
+// ===== REVIEW WRONG =====
+function reviewWrong() {
+  if (wrongList.length === 0) {
+    alert("Không có từ sai 🎉");
+    return;
+  }
+
+  lessonData = [...wrongList];
+  shuffle(lessonData);
+
+  currentIndex = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  score = 0;
+
+  newQuestion();
+}
+
+// ===== BACK =====
+function goBack() {
+  window.location.href = "index.html";
+}
+
+// ===== START =====
 startLesson();
+
+// ===== SERVICE WORKER =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
 </script>
 
 </body>
