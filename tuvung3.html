@@ -4,9 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>tuvung3</title> <!-- 🔴 SỬA: đổi theo level -->
-
-<link rel="manifest" href="manifest.json">
+<title>App cua QUANG</title>
 
 <style>
 body {
@@ -25,8 +23,8 @@ body {
 
 .back-btn {
   padding: 8px 12px;
-  border: none;
   border-radius: 8px;
+  border: none;
   background: #ccc;
 }
 
@@ -36,13 +34,14 @@ body {
   gap: 10px;
   margin-top: 10px;
 }
+
 .progress-bar {
   flex: 1;
   height: 10px;
   background: #eee;
   border-radius: 5px;
-  overflow: hidden;
 }
+
 .progress {
   height: 100%;
   background: #4caf50;
@@ -80,18 +79,88 @@ body {
 .correct { background: #c8f7c5; }
 .wrong { background: #f7c5c5; }
 
-.stats {
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.review-btn {
+  margin-top: 15px;
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4caf50, #66bb6a);
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.review-btn:active {
+  transform: scale(0.98);
+}
+
+/* SWITCH */
+.switch {
+  position: relative;
+  width: 50px;
+  height: 26px;
+}
+
+.switch input {
+  display: none;
+}
+
+.slider {
+  position: absolute;
+  background: #ccc;
+  border-radius: 26px;
+  top: 0; left: 0; right: 0; bottom: 0;
+  transition: .3s;
+}
+
+.slider:before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: .3s;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
   margin-top: 20px;
 }
 
-.action-btn {
-  margin-top: 10px;
-  padding: 12px;
-  width: 100%;
-  border: none;
-  border-radius: 10px;
+.stats {
+  flex: 1;
+  font-size: 14px;
+}
+
+.settings {
+  width: 120px;
+  text-align: right;
+}
+
+.settings h4 {
+  margin: 0 0 10px 0;
+}
+
+input:checked + .slider {
   background: #4caf50;
-  color: white;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
 }
 </style>
 </head>
@@ -100,7 +169,7 @@ body {
 
 <div class="top-bar">
   <button class="back-btn" onclick="goBack()">⬅ Back</button>
-  <h3>400 Tu vung doc N2</h3> <!-- 🔴 SỬA -->
+  <h3 id="levelTitle">400 Tu vung doc N2</h3>
 </div>
 
 <div class="progress-container">
@@ -111,29 +180,59 @@ body {
 </div>
 
 <div class="card">
+
   <div id="question"></div>
   <div class="answers" id="answers"></div>
 
-  <div class="stats">
-    <p>✅ Đúng: <span id="correct">0</span></p>
-    <p>❌ Sai: <span id="wrong">0</span></p>
-    <p>🏆 Điểm: <span id="score">0</span></p>
-    <p>📚 Từ sai: <span id="wrongTotal">0</span></p>
+  <!-- 👇 NEW LAYOUT -->
+  <div class="info-row">
+
+    <!-- LEFT: STATS -->
+    <div class="stats">
+      <p>✅ Đúng: <span id="correct">0</span></p>
+      <p>❌ Sai: <span id="wrong">0</span></p>
+      <p>🏆 Điểm: <span id="score">0</span></p>
+      <p>📚 Từ sai: <span id="wrongTotal">0</span></p>
+    </div>
+
+    <!-- RIGHT: SETTINGS -->
+    <div class="settings">
+      <h4>⚙️</h4>
+
+      <div class="setting-row">
+        <span>VN</span>
+        <label class="switch">
+          <input type="checkbox" id="modeToggle" onchange="toggleMode()">
+          <span class="slider"></span>
+        </label>
+        <span>JP</span>
+      </div>
+
+      <div class="setting-row">
+        <span>ふりがな</span>
+        <label class="switch">
+          <input type="checkbox" id="readingToggle" onchange="toggleReading()">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
   </div>
 
-  <button class="action-btn" onclick="reviewWrong()">🔁 Học lại từ sai</button>
+  <!-- BUTTON -->
+  <button class="review-btn" onclick="reviewWrong()">
+    🔁 Học lại từ sai
+  </button>
+
 </div>
 
 <script>
-// ==========================
-// 🔴 SỬA: LEVEL NAME
-// ==========================
-const LEVEL = "tuvung3"; 
-const STORAGE_KEY = "wrongList_" + LEVEL;
+// ===== CONFIG =====
+const LEVEL = "Tuvung3"; 
+const STORAGE_KEY = "wrong_" + LEVEL;
+const SETTING_KEY = "setting_quiz";
 
-// ==========================
-// 🔴 SỬA: DATA
-// ==========================
+// ===== DATA =====
 const data = [
 { word: "捉える", reading: "TRÓC-とうえる", meaning: "Nắm bắt, lĩnh hội" },
 { word: "加工業", reading: "GIA CÔNG NGHIỆP-かこうぎょう", meaning: "Ngành công nghiệp chế biến" },
@@ -547,50 +646,169 @@ let wrongCount = 0;
 let score = 0;
 let wrongList = [];
 
-// ===== LOAD LOCAL =====
-const savedWrong = localStorage.getItem(STORAGE_KEY);
-if (savedWrong) {
-  wrongList = JSON.parse(savedWrong);
-}
+let quizMode = "vn_to_jp";
+let showReading = true;
 
-// ===== UTILS =====
-function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
+let currentOptions = []; // 🔥 lưu 4 đáp án hiện tại
+
+// ===== LOAD =====
+try {
+  const s = JSON.parse(localStorage.getItem(SETTING_KEY));
+  if (s) {
+    quizMode = s.quizMode || quizMode;
+    showReading = s.showReading ?? showReading;
+  }
+
+  const w = JSON.parse(localStorage.getItem(STORAGE_KEY));
+  if (w) wrongList = w;
+} catch (e) {}
+
+// ===== INIT UI =====
+document.addEventListener("DOMContentLoaded", () => {
+  const mode = document.getElementById("modeToggle");
+  const reading = document.getElementById("readingToggle");
+
+  if (mode) mode.checked = (quizMode === "jp_to_vn");
+  if (reading) reading.checked = showReading;
+
+  
+
+  start();
+});
+
+// ===== SAVE =====
+function saveSetting() {
+  localStorage.setItem(SETTING_KEY, JSON.stringify({ quizMode, showReading }));
 }
 
 function saveWrong() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(wrongList));
 }
 
-function addWrong(wordObj) {
-  if (!wrongList.some(w => w.word === wordObj.word)) {
-    wrongList.push(wordObj);
-    saveWrong();
-  }
-}
-
-function removeWrong(wordObj) {
-  wrongList = wrongList.filter(w => w.word !== wordObj.word);
-  saveWrong();
-}
-
-// ===== START =====
-function startLesson() {
-  lessonData = [...data];
-  shuffle(lessonData);
-
+// ===== FLOW =====
+function start() {
+  lessonData = [...data].sort(() => Math.random() - 0.5);
   currentIndex = 0;
-  correctCount = 0;
-  wrongCount = 0;
-  score = 0;
-
-  newQuestion();
+  next();
 }
 
-// ===== UPDATE UI =====
-function updateProgress() {
+function next() {
+  if (currentIndex >= lessonData.length) {
+    alert("🎉 Hoàn thành!");
+    return;
+  }
+
+  currentQuestion = lessonData[currentIndex++];
+  currentOptions = []; // reset options mới cho từ mới
+  render();
+  update();
+}
+
+// ===== RENDER =====
+function render() {
+  const q = document.getElementById("question");
+
+  // render câu hỏi
+  if (quizMode === "vn_to_jp") {
+    q.innerText = currentQuestion.meaning;
+  } else {
+    q.innerText = currentQuestion.word +
+      (showReading && currentQuestion.reading ? " (" + currentQuestion.reading + ")" : "");
+  }
+
+  // tạo options nếu chưa có
+  if (!currentOptions.length) {
+    let options = [currentQuestion];
+    while (options.length < 4) {
+      let r = data[Math.floor(Math.random() * data.length)];
+      if (!options.includes(r)) options.push(r);
+    }
+    options.sort(() => Math.random() - 0.5);
+    currentOptions = options;
+  }
+
+  // render đáp án
+  const ans = document.getElementById("answers");
+  ans.innerHTML = "";
+  currentOptions.forEach(opt => {
+    let btn = document.createElement("div");
+    btn.className = "btn";
+
+    btn.innerText =
+      quizMode === "vn_to_jp"
+        ? opt.word + (showReading && opt.reading ? " (" + opt.reading + ")" : "")
+        : opt.meaning;
+
+    btn.onclick = () => check(btn, opt);
+    ans.appendChild(btn);
+  });
+}
+
+// ===== CHECK =====
+function check(btn, selected) {
+  const buttons = document.querySelectorAll(".btn");
+  buttons.forEach(b => b.onclick = null);
+
+  if (selected.word === currentQuestion.word) {
+    btn.classList.add("correct");
+    correctCount++;
+    score++;
+    wrongList = wrongList.filter(w => w.word !== currentQuestion.word);
+  } else {
+    btn.classList.add("wrong");
+    wrongCount++;
+
+    if (!wrongList.some(w => w.word === currentQuestion.word)) {
+      wrongList.push(currentQuestion);
+    }
+
+    buttons.forEach(b => {
+      if (b.innerText.includes(currentQuestion.word)) {
+        b.classList.add("correct");
+      }
+    });
+  }
+
+  saveWrong();
+  update();
+  setTimeout(next, 700);
+}
+
+// ===== SETTINGS =====
+function toggleMode() {
+  const el = document.getElementById("modeToggle");
+  if (!el) return;
+
+  quizMode = el.checked ? "jp_to_vn" : "vn_to_jp";
+  saveSetting();
+  render(); // chỉ cập nhật text, không random options
+}
+
+function toggleReading() {
+  const el = document.getElementById("readingToggle");
+  if (!el) return;
+
+  showReading = el.checked;
+  saveSetting();
+  render(); // chỉ cập nhật text, không random options
+}
+
+// ===== REVIEW =====
+function reviewWrong() {
+  if (wrongList.length === 0) {
+    alert("Không có từ sai");
+    return;
+  }
+
+  lessonData = [...wrongList];
+  currentIndex = 0;
+  next();
+}
+
+// ===== UI =====
+function update() {
   document.getElementById("progressText").innerText =
-    currentIndex + " / " + lessonData.length;
+    currentIndex + "/" + lessonData.length;
 
   document.getElementById("progressBar").style.width =
     (currentIndex / lessonData.length) * 100 + "%";
@@ -601,100 +819,9 @@ function updateProgress() {
   document.getElementById("wrongTotal").innerText = wrongList.length;
 }
 
-// ===== NEW QUESTION =====
-function newQuestion() {
-  if (currentIndex >= lessonData.length) {
-    alert("🎉 Hoàn thành!");
-    return;
-  }
-
-  currentQuestion = lessonData[currentIndex];
-  currentIndex++;
-
-  updateProgress();
-
-  let options = [currentQuestion];
-
-  while (options.length < 4) {
-    let rand = data[Math.floor(Math.random() * data.length)];
-    if (!options.includes(rand)) options.push(rand);
-  }
-
-  options = shuffle(options);
-
-  document.getElementById("question").innerText =
-    currentQuestion.meaning;
-
-  const answerDiv = document.getElementById("answers");
-  answerDiv.innerHTML = "";
-
-  options.forEach(opt => {
-    let btn = document.createElement("div");
-    btn.className = "btn";
-
-    btn.innerText = opt.word + (opt.reading ? " (" + opt.reading + ")" : "");
-
-    btn.onclick = () => checkAnswer(btn, opt);
-
-    answerDiv.appendChild(btn);
-  });
-}
-
-// ===== CHECK =====
-function checkAnswer(btn, selected) {
-  const buttons = document.querySelectorAll(".btn");
-  buttons.forEach(b => b.onclick = null);
-
-  if (selected.word === currentQuestion.word) {
-    btn.classList.add("correct");
-    correctCount++;
-    score++;
-    removeWrong(currentQuestion);
-  } else {
-    btn.classList.add("wrong");
-    wrongCount++;
-    addWrong(currentQuestion);
-
-    buttons.forEach(b => {
-      if (b.innerText.includes(currentQuestion.word)) {
-        b.classList.add("correct");
-      }
-    });
-  }
-
-  updateProgress();
-  setTimeout(newQuestion, 800);
-}
-
-// ===== REVIEW WRONG =====
-function reviewWrong() {
-  if (wrongList.length === 0) {
-    alert("Không có từ sai 🎉");
-    return;
-  }
-
-  lessonData = [...wrongList];
-  shuffle(lessonData);
-
-  currentIndex = 0;
-  correctCount = 0;
-  wrongCount = 0;
-  score = 0;
-
-  newQuestion();
-}
-
-// ===== BACK =====
+// ===== NAV =====
 function goBack() {
   window.location.href = "index.html";
-}
-
-// ===== START =====
-startLesson();
-
-// ===== SERVICE WORKER =====
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
 }
 </script>
 

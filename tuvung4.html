@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>App cua QUANG</title>
+
+<style>
+body {
+  font-family: Arial;
+  padding: 16px;
+  max-width: 500px;
+  margin: auto;
+  background: #f9f9f9;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.back-btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #ccc;
+}
+
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 10px;
+  background: #eee;
+  border-radius: 5px;
+}
+
+.progress {
+  height: 100%;
+  background: #4caf50;
+  width: 0%;
+}
+
+.card {
+  background: #fff;
+  border-radius: 15px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+#question {
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.answers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.btn {
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  font-size: 18px;
+  background: #fff;
+}
+
+.correct { background: #c8f7c5; }
+.wrong { background: #f7c5c5; }
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.review-btn {
+  margin-top: 15px;
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4caf50, #66bb6a);
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.review-btn:active {
+  transform: scale(0.98);
+}
+
+/* SWITCH */
+.switch {
+  position: relative;
+  width: 50px;
+  height: 26px;
+}
+
+.switch input {
+  display: none;
+}
+
+.slider {
+  position: absolute;
+  background: #ccc;
+  border-radius: 26px;
+  top: 0; left: 0; right: 0; bottom: 0;
+  transition: .3s;
+}
+
+.slider:before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: .3s;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.stats {
+  flex: 1;
+  font-size: 14px;
+}
+
+.settings {
+  width: 120px;
+  text-align: right;
+}
+
+.settings h4 {
+  margin: 0 0 10px 0;
+}
+
+input:checked + .slider {
+  background: #4caf50;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+</style>
+</head>
+
+<body>
+
+<div class="top-bar">
+  <button class="back-btn" onclick="goBack()">⬅ Back</button>
+  <h3 id="levelTitle">Từ vựng tổng hợp dự án Brse</h3>
+</div>
+
+<div class="progress-container">
+  <div class="progress-bar">
+    <div class="progress" id="progressBar"></div>
+  </div>
+  <span id="progressText">0 / 0</span>
+</div>
+
+<div class="card">
+
+  <div id="question"></div>
+  <div class="answers" id="answers"></div>
+
+  <!-- 👇 NEW LAYOUT -->
+  <div class="info-row">
+
+    <!-- LEFT: STATS -->
+    <div class="stats">
+      <p>✅ Đúng: <span id="correct">0</span></p>
+      <p>❌ Sai: <span id="wrong">0</span></p>
+      <p>🏆 Điểm: <span id="score">0</span></p>
+      <p>📚 Từ sai: <span id="wrongTotal">0</span></p>
+    </div>
+
+    <!-- RIGHT: SETTINGS -->
+    <div class="settings">
+      <h4>⚙️</h4>
+
+      <div class="setting-row">
+        <span>VN</span>
+        <label class="switch">
+          <input type="checkbox" id="modeToggle" onchange="toggleMode()">
+          <span class="slider"></span>
+        </label>
+        <span>JP</span>
+      </div>
+
+      <div class="setting-row">
+        <span>ふりがな</span>
+        <label class="switch">
+          <input type="checkbox" id="readingToggle" onchange="toggleReading()">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BUTTON -->
+  <button class="review-btn" onclick="reviewWrong()">
+    🔁 Học lại từ sai
+  </button>
+
+</div>
+
+<script>
+// ===== CONFIG =====
+const LEVEL = "Tuvung4"; 
+const STORAGE_KEY = "wrong_" + LEVEL;
+const SETTING_KEY = "setting_quiz";
+
+// ===== DATA =====
+const data = [
+{ word: "別途", reading: "べっと", meaning: "riêng / riêng biệt" },
+{ word: "ラフ案", reading: "ラフけん", meaning: "bản nháp / bản phác thảo / bản ý tưởng sơ bộ" },
+{ word: "なんとなくこんな感じ", reading: "", meaning: "kiểu như “đại khái là thế này thôi”" },
+{ word: "なんとなく", reading: "", meaning: "đại khái / kiểu như / không rõ lý do / theo cảm giác" },
+{ word: "ＡＯ受験（AO入試）", reading: "", meaning: "AO＝Admissions Office　Hình thức xét tuyển đại học (không chỉ dựa vào điểm thi)" },
+{ word: "総合選別型入試", reading: "そうごう せんべつがた にゅうし", meaning: "Kỳ tuyển sinh theo hình thức xét tuyển tổng hợp" },
+{ word: "総合", reading: "そうごう", meaning: "tổng hợp / toàn diện" },
+{ word: "選別", reading: "せんべつ", meaning: "tuyển chọn / sàng lọc" },
+{ word: "入試", reading: "にゅうし", meaning: "kỳ thi đầu vào (entrance exam)" },
+{ word: "社会人", reading: "しゃかいじん", meaning: "người đi làm / người đã đi làm" },
+{ word: "就職", reading: "しゅうしょく", meaning: "xin việc / đi làm" },
+{ word: "ポータルサイト", reading: "", meaning: "Portal site web site cổng thông tin" },
+{ word: "制作", reading: "せいさく", meaning: "sản xuất / tạo ra (mang tính sáng tạo)" },
+{ word: "最適化", reading: "さいてきか", meaning: "tối ưu hóa" },
+{ word: "あたり", reading: "", meaning: "Khoảng/ tầm/ quang đó" },
+{ word: "前提", reading: "ぜんてい", meaning: "tiền đề / giả định" },
+{ word: "～を前提", reading: "～をぜんてい", meaning: "lấy ~ làm điều kiện giả định" },
+{ word: "ターゲット", reading: "", meaning: "mục tiêu (target)" },
+{ word: "ターゲット利用者", reading: "", meaning: "người dùng mục tiêu" },
+{ word: "就活", reading: "しゅうかつ", meaning: "hoạt động xin việc" },
+{ word: "就活生", reading: "しゅうかつせい", meaning: "sinh viên đang đi xin việc" },
+{ word: "大まかな", reading: "おおまかな", meaning: "đại khái / tổng quan / không chi tiết" },
+{ word: "における", reading: "", meaning: "tại/đối với" },
+{ word: "課外", reading: "かがい", meaning: "ngoại khóa" },
+{ word: "絞り込み", reading: "しぼりこみ", meaning: "filter Lọc / thu hẹp kết quả theo điều kiện" },
+{ word: "題名", reading: "だいめい", meaning: "Tiêu đề, tên" },
+{ word: "キャッチフレーズ", reading: "", meaning: "slogan / câu giới thiệu ngắn" },
+{ word: "主催者", reading: "しゅさいしゃ", meaning: "người/đơn vị tổ chức" },
+{ word: "表記", reading: "ひょうき", meaning: "Cách hiển thị, cách viết tên" },
+{ word: "推奨", reading: "すいしょう", meaning: "khuyến nghị/gợi ý" },
+{ word: "政策", reading: "せいさく", meaning: "chính sách" },
+{ word: "宿泊", reading: "しゅくはく", meaning: "lưu trú" },
+{ word: "適当", reading: "てきとう", meaning: "Phù hợp / thích hợp / vừa phải/Tùy ý / đại khái / qua loa" },
+{ word: "と合わせて", reading: "", meaning: "cùng với/kết hợp với" },
+{ word: "隔月", reading: "かくげつ", meaning: "Cách tháng / 2 tháng một lần." },
+{ word: "容易", reading: "ようい", meaning: "Dễ dàng, đơn giản, thuận tiện" },
+{ word: "とりまとめられる", reading: "", meaning: "được tổng hợp, tập hợp(Chỉ việc quản lý & xử lý tập trung)" },
+{ word: "各々", reading: "おのおの", meaning: "Mỗi người / từng cái / từng cái riêng biệt" },
+{ word: "獲得対価", reading: "かくとく たいか", meaning: "giá trị thu được, phí, thù lao" },
+{ word: "獲得", reading: "かくとく", meaning: "thu được, đạt được" },
+{ word: "対価", reading: "たいか", meaning: "thù lao, phí, giá trị" },
+{ word: "月額", reading: "げつがく", meaning: "phí hàng tháng" },
+{ word: "仮想定", reading: "かそうてい", meaning: "dự kiến, giả định" },
+{ word: "事務ミス", reading: "じむミス", meaning: "sai sót hành chính" },
+{ word: "人件費", reading: "じんけんひ", meaning: "chi phí nhân sự" },
+{ word: "手間暇", reading: "てまひま", meaning: "công sức / thời gian" },
+{ word: "募集", reading: "ぼしゅう", meaning: "tuyển dụng" },
+{ word: "メリット", reading: "", meaning: "lợi ích" },
+{ word: "閲覧", reading: "えつらん", meaning: "Xem / tra cứu / đọc (thông tin, dữ liệu)mang tinh read-only" },
+{ word: "厳格に定めた仕様", reading: "げんかくにさだめたしよう", meaning: "chuẩn quy định nghiêm ngặt" },
+{ word: "統一", reading: "とういつ", meaning: "được thống nhất" },
+{ word: "信頼性", reading: "しんらいせい", meaning: "độ tin cậy" },
+{ word: "向上", reading: "こうじょう", meaning: "nâng cao" },
+{ word: "課金", reading: "かきん", meaning: "phí thanh toán / charging" }
+];
+
+// ===== STATE =====
+let lessonData = [];
+let currentIndex = 0;
+let currentQuestion;
+
+let correctCount = 0;
+let wrongCount = 0;
+let score = 0;
+let wrongList = [];
+
+let quizMode = "vn_to_jp";
+let showReading = true;
+
+let currentOptions = []; // 🔥 lưu 4 đáp án hiện tại
+
+// ===== LOAD =====
+try {
+  const s = JSON.parse(localStorage.getItem(SETTING_KEY));
+  if (s) {
+    quizMode = s.quizMode || quizMode;
+    showReading = s.showReading ?? showReading;
+  }
+
+  const w = JSON.parse(localStorage.getItem(STORAGE_KEY));
+  if (w) wrongList = w;
+} catch (e) {}
+
+// ===== INIT UI =====
+document.addEventListener("DOMContentLoaded", () => {
+  const mode = document.getElementById("modeToggle");
+  const reading = document.getElementById("readingToggle");
+
+  if (mode) mode.checked = (quizMode === "jp_to_vn");
+  if (reading) reading.checked = showReading;
+
+  
+
+  start();
+});
+
+// ===== SAVE =====
+function saveSetting() {
+  localStorage.setItem(SETTING_KEY, JSON.stringify({ quizMode, showReading }));
+}
+
+function saveWrong() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(wrongList));
+}
+
+// ===== FLOW =====
+function start() {
+  lessonData = [...data].sort(() => Math.random() - 0.5);
+  currentIndex = 0;
+  next();
+}
+
+function next() {
+  if (currentIndex >= lessonData.length) {
+    alert("🎉 Hoàn thành!");
+    return;
+  }
+
+  currentQuestion = lessonData[currentIndex++];
+  currentOptions = []; // reset options mới cho từ mới
+  render();
+  update();
+}
+
+// ===== RENDER =====
+function render() {
+  const q = document.getElementById("question");
+
+  // render câu hỏi
+  if (quizMode === "vn_to_jp") {
+    q.innerText = currentQuestion.meaning;
+  } else {
+    q.innerText = currentQuestion.word +
+      (showReading && currentQuestion.reading ? " (" + currentQuestion.reading + ")" : "");
+  }
+
+  // tạo options nếu chưa có
+  if (!currentOptions.length) {
+    let options = [currentQuestion];
+    while (options.length < 4) {
+      let r = data[Math.floor(Math.random() * data.length)];
+      if (!options.includes(r)) options.push(r);
+    }
+    options.sort(() => Math.random() - 0.5);
+    currentOptions = options;
+  }
+
+  // render đáp án
+  const ans = document.getElementById("answers");
+  ans.innerHTML = "";
+  currentOptions.forEach(opt => {
+    let btn = document.createElement("div");
+    btn.className = "btn";
+
+    btn.innerText =
+      quizMode === "vn_to_jp"
+        ? opt.word + (showReading && opt.reading ? " (" + opt.reading + ")" : "")
+        : opt.meaning;
+
+    btn.onclick = () => check(btn, opt);
+    ans.appendChild(btn);
+  });
+}
+
+// ===== CHECK =====
+function check(btn, selected) {
+  const buttons = document.querySelectorAll(".btn");
+  buttons.forEach(b => b.onclick = null);
+
+  if (selected.word === currentQuestion.word) {
+    btn.classList.add("correct");
+    correctCount++;
+    score++;
+    wrongList = wrongList.filter(w => w.word !== currentQuestion.word);
+  } else {
+    btn.classList.add("wrong");
+    wrongCount++;
+
+    if (!wrongList.some(w => w.word === currentQuestion.word)) {
+      wrongList.push(currentQuestion);
+    }
+
+    buttons.forEach(b => {
+      if (b.innerText.includes(currentQuestion.word)) {
+        b.classList.add("correct");
+      }
+    });
+  }
+
+  saveWrong();
+  update();
+  setTimeout(next, 700);
+}
+
+// ===== SETTINGS =====
+function toggleMode() {
+  const el = document.getElementById("modeToggle");
+  if (!el) return;
+
+  quizMode = el.checked ? "jp_to_vn" : "vn_to_jp";
+  saveSetting();
+  render(); // chỉ cập nhật text, không random options
+}
+
+function toggleReading() {
+  const el = document.getElementById("readingToggle");
+  if (!el) return;
+
+  showReading = el.checked;
+  saveSetting();
+  render(); // chỉ cập nhật text, không random options
+}
+
+// ===== REVIEW =====
+function reviewWrong() {
+  if (wrongList.length === 0) {
+    alert("Không có từ sai");
+    return;
+  }
+
+  lessonData = [...wrongList];
+  currentIndex = 0;
+  next();
+}
+
+// ===== UI =====
+function update() {
+  document.getElementById("progressText").innerText =
+    currentIndex + "/" + lessonData.length;
+
+  document.getElementById("progressBar").style.width =
+    (currentIndex / lessonData.length) * 100 + "%";
+
+  document.getElementById("correct").innerText = correctCount;
+  document.getElementById("wrong").innerText = wrongCount;
+  document.getElementById("score").innerText = score;
+  document.getElementById("wrongTotal").innerText = wrongList.length;
+}
+
+// ===== NAV =====
+function goBack() {
+  window.location.href = "index.html";
+}
+</script>
+
+</body>
+</html>
