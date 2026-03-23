@@ -2,7 +2,9 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <title>App cua QUANG</title>
 
@@ -13,6 +15,35 @@ body {
   max-width: 500px;
   margin: auto;
   background: #f9f9f9;
+}
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.card {
+  background: #fff;
+  border-radius: 15px;
+  padding: 20px;
+  margin-top: 20px;
+
+  flex: 1;
+  overflow-y: auto;
+}
+
+body {
+  font-family: Arial;
+  padding: 16px;
+  max-width: 500px;
+  margin: auto;
+  background: #f9f9f9;
+
+  display: flex;
+  flex-direction: column;
 }
 
 .top-bar {
