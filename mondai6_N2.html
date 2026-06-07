@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>JLPT Flashcard</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    background:#f5f5f5;
+    margin:0;
+    padding:20px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+.card{
+    background:white;
+    border-radius:15px;
+    padding:25px;
+    min-height:400px;
+    box-shadow:0 2px 10px rgba(0,0,0,.15);
+}
+
+pre{
+    white-space:pre-wrap;
+    font-size:16px;
+    line-height:1.6;
+}
+
+.hidden{
+    display:none;
+}
+
+.stats{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+}
+
+.stat{
+    background:white;
+    padding:10px;
+    border-radius:8px;
+}
+
+.buttons{
+    margin-top:20px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+button{
+    padding:10px 15px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.flip{
+    background:#2196F3;
+    color:white;
+}
+
+.known{
+    background:#4CAF50;
+    color:white;
+}
+
+.unknown{
+    background:#FF9800;
+    color:white;
+}
+
+.nav{
+    background:#666;
+    color:white;
+}
+
+.reset{
+    background:#d32f2f;
+    color:white;
+}
+
+select{
+    padding:8px;
+    margin-bottom:15px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>JLPT Flashcard</h1>
+
+<div class="stats">
+    <div class="stat">Tổng: <span id="total">0</span></div>
+    <div class="stat">Thuộc: <span id="knownCount">0</span></div>
+    <div class="stat">Chưa thuộc: <span id="unknownCount">0</span></div>
+</div>
+
+<select id="mode">
+    <option value="all">Học tất cả</option>
+    <option value="unknown">Chỉ học câu chưa thuộc</option>
+</select>
+
+<h3 id="cardNumber"></h3>
+
+<div class="card">
+
+    <div id="front"></div>
+
+    <div id="back" class="hidden"></div>
+
+</div>
+
+<div class="buttons">
+
+    <button class="flip" onclick="flipCard()">
+        Lật thẻ
+    </button>
+
+    <button class="known" onclick="markKnown()">
+        Thuộc rồi
+    </button>
+
+    <button class="unknown" onclick="markUnknown()">
+        Chưa thuộc
+    </button>
+
+    <button class="nav" onclick="prevCard()">
+        ← Trước
+    </button>
+
+    <button class="nav" onclick="nextCard()">
+        Tiếp →
+    </button>
+
+    <button class="reset" onclick="resetProgress()">
+        Reset
+    </button>
+
+</div>
+
+</div>
+
+<script>
+
+let cards = [];
+
+let current = 0;
+
+let progress =
+JSON.parse(
+    localStorage.getItem("jlptProgress")
+    || "{}"
+);
+
+async function loadCards(){
+
+    const response =
+        await fetch("mondai6_n2.json");
+
+    cards =
+        await response.json();
+
+    render();
+}
+
+function getCurrentList(){
+
+    if(
+        document.getElementById("mode").value
+        === "all"
+    ){
+        return cards;
+    }
+
+    return cards.filter(
+        card => progress[card.id] !== true
+    );
+}
+
+function render(){
+
+    const list = getCurrentList();
+
+    updateStats();
+
+    if(list.length === 0){
+
+        document.getElementById("cardNumber")
+            .textContent = "";
+
+        document.getElementById("front")
+            .innerHTML =
+            "<h2>🎉 Đã thuộc hết</h2>";
+
+        document.getElementById("back")
+            .innerHTML = "";
+
+        return;
+    }
+
+    if(current >= list.length){
+        current = 0;
+    }
+
+    const card = list[current];
+
+    document.getElementById("cardNumber")
+        .textContent =
+        `${current + 1} / ${list.length}`;
+
+    document.getElementById("front")
+        .innerHTML =
+        "<pre>" + card.front + "</pre>";
+
+    document.getElementById("back")
+        .innerHTML =
+        "<pre>" + card.back + "</pre>";
+
+    document.getElementById("back")
+        .classList.add("hidden");
+}
+
+function flipCard(){
+
+    document.getElementById("back")
+        .classList.toggle("hidden");
+}
+
+function nextCard(){
+
+    const list = getCurrentList();
+
+    if(list.length === 0) return;
+
+    current++;
+
+    if(current >= list.length){
+        current = 0;
+    }
+
+    render();
+}
+
+function prevCard(){
+
+    const list = getCurrentList();
+
+    if(list.length === 0) return;
+
+    current--;
+
+    if(current < 0){
+        current = list.length - 1;
+    }
+
+    render();
+}
+
+function markKnown(){
+
+    const list = getCurrentList();
+
+    if(list.length === 0) return;
+
+    progress[list[current].id] = true;
+
+    save();
+
+    render();
+}
+
+function markUnknown(){
+
+    const list = getCurrentList();
+
+    if(list.length === 0) return;
+
+    progress[list[current].id] = false;
+
+    save();
+
+    render();
+}
+
+function save(){
+
+    localStorage.setItem(
+        "jlptProgress",
+        JSON.stringify(progress)
+    );
+}
+
+function resetProgress(){
+
+    if(confirm("Xóa toàn bộ tiến độ học?")){
+
+        localStorage.removeItem(
+            "jlptProgress"
+        );
+
+        progress = {};
+
+        current = 0;
+
+        render();
+    }
+}
+
+function updateStats(){
+
+    const known = cards.filter(
+        card => progress[card.id] === true
+    ).length;
+
+    document.getElementById("total")
+        .textContent = cards.length;
+
+    document.getElementById("knownCount")
+        .textContent = known;
+
+    document.getElementById("unknownCount")
+        .textContent =
+        cards.length - known;
+}
+
+document
+.getElementById("mode")
+.addEventListener(
+    "change",
+    () => {
+        current = 0;
+        render();
+    }
+);
+
+loadCards();
+
+</script>
+
+</body>
+</html>
