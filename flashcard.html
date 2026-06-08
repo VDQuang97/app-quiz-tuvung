@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>JLPT Flashcard</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    max-width:1000px;
+    margin:auto;
+    padding:20px;
+    background:#f5f5f5;
+}
+
+.card{
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    min-height:350px;
+    box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+
+pre{
+    white-space:pre-wrap;
+    line-height:1.6;
+}
+
+.hidden{
+    display:none;
+}
+
+button{
+    padding:10px 15px;
+    margin:5px;
+    cursor:pointer;
+}
+
+.stats{
+    margin:15px 0;
+}
+
+select{
+    padding:8px;
+    margin-bottom:15px;
+}
+
+#cardNumber{
+    margin:10px 0;
+}
+</style>
+
+</head>
+<body>
+
+<h1>JLPT Flashcard</h1>
+
+<select id="dataset"></select>
+
+<div class="stats">
+    Tổng: <span id="total">0</span> |
+    Thuộc: <span id="knownCount">0</span> |
+    Chưa thuộc: <span id="unknownCount">0</span>
+</div>
+
+<select id="mode">
+    <option value="all">Học tất cả</option>
+    <option value="unknown">Chỉ học câu chưa thuộc</option>
+</select>
+
+<h3 id="cardNumber"></h3>
+
+<div class="card">
+
+    <div id="front"></div>
+
+    <div id="back" class="hidden"></div>
+
+</div>
+
+<br>
+
+<button onclick="flipCard()">
+Lật thẻ
+</button>
+
+<button onclick="markKnown()">
+Thuộc rồi
+</button>
+
+<button onclick="markUnknown()">
+Chưa thuộc
+</button>
+
+<button onclick="prevCard()">
+← Trước
+</button>
+
+<button onclick="nextCard()">
+Tiếp →
+</button>
+
+<button onclick="resetProgress()">
+Reset
+</button>
+
+<script>
+
+let cards = [];
+
+let current = 0;
+
+let DATA_FILE = "";
+
+let STORAGE_KEY = "";
+
+let progress = {};
+
+async function loadCatalog(){
+
+    const response =
+        await fetch("./data/catalog.json");
+
+    const catalog =
+        await response.json();
+
+    const select =
+        document.getElementById("dataset");
+
+    select.innerHTML = "";
+
+    catalog.forEach(item=>{
+
+        const option =
+            document.createElement("option");
+
+        option.value = item.file;
+
+        option.textContent = item.name;
+
+        select.appendChild(option);
+
+    });
+
+    DATA_FILE =
+        localStorage.getItem("selectedDataset")
+        || catalog[0].file;
+
+    select.value = DATA_FILE;
+
+    select.addEventListener(
+        "change",
+        changeDataset
+    );
+
+    loadCards();
+}
+
+async function loadCards(){
+
+    STORAGE_KEY =
+        "progress_" +
+        DATA_FILE.replace(".json","");
+
+    progress =
+    JSON.parse(
+        localStorage.getItem(STORAGE_KEY)
+        || "{}"
+    );
+
+    const response =
+        await fetch("./data/" + DATA_FILE);
+
+    cards =
+        await response.json();
+
+    current = 0;
+
+    render();
+}
+
+function changeDataset(){
+
+    DATA_FILE =
+        document.getElementById("dataset").value;
+
+    localStorage.setItem(
+        "selectedDataset",
+        DATA_FILE
+    );
+
+    loadCards();
+}
+
+function getCurrentList(){
+
+    if(
+        document.getElementById("mode").value
+        === "all"
+    ){
+        return cards;
+    }
+
+    return cards.filter(
+        x => progress[x.id] !== true
+    );
+}
+
+function render(){
+
+    updateStats();
+
+    const list =
+        getCurrentList();
+
+    if(list.length === 0){
+
+        document.getElementById("front")
+        .innerHTML =
+        "<h2>🎉 Đã thuộc hết</h2>";
+
+        document.getElementById("back")
+        .innerHTML = "";
+
+        return;
+    }
+
+    if(current >= list.length){
+        current = 0;
+    }
+
+    const card =
+        list[current];
+
+    document.getElementById("cardNumber")
+    .textContent =
+    `${current+1}/${list.length}`;
+
+    document.getElementById("front")
+    .innerHTML =
+    `<pre>${card.front}</pre>`;
+
+    document.getElementById("back")
+    .innerHTML =
+    `<pre>${card.back}</pre>`;
+
+    document.getElementById("back")
+    .classList.add("hidden");
+}
+
+function flipCard(){
+
+    document.getElementById("back")
+    .classList.toggle("hidden");
+}
+
+function nextCard(){
+
+    const list =
+        getCurrentList();
+
+    if(list.length===0) return;
+
+    current++;
+
+    if(current>=list.length)
+        current=0;
+
+    render();
+}
+
+function prevCard(){
+
+    const list =
+        getCurrentList();
+
+    if(list.length===0) return;
+
+    current--;
+
+    if(current<0)
+        current=list.length-1;
+
+    render();
+}
+
+function save(){
+
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(progress)
+    );
+}
+
+function markKnown(){
+
+    const list =
+        getCurrentList();
+
+    if(list.length===0) return;
+
+    progress[
+        list[current].id
+    ] = true;
+
+    save();
+
+    render();
+}
+
+function markUnknown(){
+
+    const list =
+        getCurrentList();
+
+    if(list.length===0) return;
+
+    progress[
+        list[current].id
+    ] = false;
+
+    save();
+
+    render();
+}
+
+function resetProgress(){
+
+    if(
+        !confirm(
+        "Xóa tiến độ học bộ đề này?"
+        )
+    ){
+        return;
+    }
+
+    localStorage.removeItem(
+        STORAGE_KEY
+    );
+
+    progress = {};
+
+    current = 0;
+
+    render();
+}
+
+function updateStats(){
+
+    const known =
+    cards.filter(
+        card =>
+        progress[card.id]===true
+    ).length;
+
+    document.getElementById("total")
+    .textContent =
+    cards.length;
+
+    document.getElementById("knownCount")
+    .textContent =
+    known;
+
+    document.getElementById("unknownCount")
+    .textContent =
+    cards.length-known;
+}
+
+document
+.getElementById("mode")
+.addEventListener(
+    "change",
+    ()=>{
+        current=0;
+        render();
+    }
+);
+
+loadCatalog();
+
+</script>
+
+</body>
+</html>
